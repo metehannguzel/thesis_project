@@ -23,7 +23,6 @@ relationship_scores = {
     "food": {"drinks": 0.5, "healthcare": 0.4, "personal": 0.5, "cleaning": 0.3, "glassware": 0.4, "food": 1}
 }
 
-
 def initialize_firebase():
     cred = credentials.Certificate("config_files/key.json")
     app = firebase_admin.initialize_app(cred, {"storageBucket": "thesisdemoproject.appspot.com"})
