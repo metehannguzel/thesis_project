@@ -6,7 +6,7 @@ import json
 model_script_path = os.path.join(os.getcwd(), "main.py")
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(("localhost", 9999))
+server.bind(("localhost", 80))
 
 server.listen()
 
@@ -17,8 +17,8 @@ while True:
 
     if result.returncode == 0 and result.stdout:
         stdout_data = result.stdout
-        start_index = stdout_data.rfind('{')
-        end_index = stdout_data.rfind('}') + 1
+        start_index = stdout_data.rfind("{")
+        end_index = stdout_data.rfind("}") + 1
 
         if start_index != -1 and end_index != -1:
             json_string = stdout_data[start_index:end_index]
@@ -41,6 +41,8 @@ while True:
 # cd C:\Users\guzel\OneDrive\Documents\thesis\thesis_project\ngrok
 # 
 # ngrok.exe http 9999
+#
+# ngrok http --ngrok-url 80
 # 
 # ngrok.exe tcp 9999
 
