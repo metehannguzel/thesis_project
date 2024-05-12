@@ -26,6 +26,7 @@ relationship_scores = {
 def initialize_firebase():
     cred = credentials.Certificate("config_files/key.json")
     app = firebase_admin.initialize_app(cred, {"storageBucket": "thesisdemoproject.appspot.com"})
+
     return storage.bucket()
 
 def load_latest_image(bucket):
@@ -37,10 +38,12 @@ def load_latest_image(bucket):
     cv2.imshow("image", img)
     cv2.waitKey(1000)
     cv2.destroyAllWindows()
+
     return img, latest_blob.name
 
 def predict_image(img, model_path):
     model = YOLO(model_path)
+
     return model(source=img, save_txt=True)
 
 def process_predictions(file_path):
@@ -51,6 +54,7 @@ def process_predictions(file_path):
                 writer.writerow(line.strip().split(","))
     labels = pd.read_csv("image0.csv", header=None, sep="\s+")
     labels.columns = ["id", "x", "y", "width", "height"]
+
     return labels
 
 def summarize_labels(labels, relationship_scores):
@@ -63,6 +67,7 @@ def summarize_labels(labels, relationship_scores):
 
     total_relationship_score = 0
     total_products = 0
+
     for outlier_id, count in outlier_ids.items():
         outlier_category = class_dict.get(outlier_id, np.nan)
         score = relationship_scores[category].get(outlier_category, 0)
@@ -81,9 +86,10 @@ def summarize_labels(labels, relationship_scores):
 
 def save_and_upload_result(results, file_name, bucket):
     for result in results:
-        result.save(f"predicted/{file_name}")
-    local_file_path = f"predicted/{file_name}"
+        result.save(f"{file_name}")
+    local_file_path = f"{file_name}"
     remote_file_path = f"predicted/{file_name}"
+
     return upload_to_firebase(local_file_path, remote_file_path, bucket)
 
 def upload_to_firebase(local_file, remote_path, bucket):
@@ -91,7 +97,16 @@ def upload_to_firebase(local_file, remote_path, bucket):
     blob.upload_from_filename(local_file)
     url = blob.generate_signed_url(expiration=datetime.datetime.now() + timedelta(days=1))
     print(f"File uploaded to {remote_path}")
+    
     return url
+
+def delete_files(file_paths):
+    for file_path in file_paths:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"{file_path} successfully deleted.")
+        else:
+            print(f"{file_path} not found.")
 
 def main():
     bucket = initialize_firebase()
@@ -105,7 +120,7 @@ def main():
 
     results_dict = {
     "category": str(category) if pd.notna(category) else "Empty",
-    "outlier_product_category": str([str(cat) for cat in outlier_product_category if pd.notna(cat)] if outlier_product_category else ["Empty"]),
+    "outlier_product_category": ", ".join([str(cat) for cat in outlier_product_category if pd.notna(cat)]) if outlier_product_category else "Empty", #str([str(cat) for cat in outlier_product_category if pd.notna(cat)] if outlier_product_category else "Empty"),
     "product_count": int(product_count) if pd.notna(product_count) else -1,
     "outlier_product_count": int(outlier_product_count) if pd.notna(outlier_product_count) else -1,
     "total_product_count": int(total_product_count) if pd.notna(total_product_count) else -1,
@@ -115,6 +130,9 @@ def main():
     
     print(json.dumps(results_dict))
     shutil.rmtree("runs/detect/predict")
+    csv_file_path = "image0.csv"
+    local_file_path = f"{file_name}"
+    delete_files([csv_file_path, local_file_path])
 
 if __name__ == "__main__":
     main()
